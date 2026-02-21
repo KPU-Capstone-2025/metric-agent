@@ -76,6 +76,3 @@ sudo -E ./metric-agent
 - 표준 프로토콜: 글로벌 표준인 OpenTelemetry(OTLP) 기반으로 데이터의 범용성이 높습니다.
 - 자동 식별: 기업 코드와 서버 호스트네임을 조합하여 관리 대시보드에 자동 분류됩니다.
 - 리소스 최적화: Go 언어로 빌드된 단일 바이너리로 작동하여 시스템 부하를 최소화합니다.
-
-기술 지원 문의
-이메일: support@your-monitoring-service.com
