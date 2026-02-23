@@ -64,7 +64,7 @@ chmod +x metric-agent
 ```bash
 export MONITORING_ID="귀사의_고유_코드"
 export COLLECTOR_URL="수집_서버_주소:4318"
-sudo -E ./metric-agent
+sudo -E nohup ./metric-agent > metric.log 2>&1 &
 ```
 
 ## 준비 사항
