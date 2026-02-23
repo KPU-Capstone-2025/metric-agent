@@ -56,9 +56,10 @@ sudo docker run -d \
 
 1. 에이전트 다운로드 및 권한 부여
 ```bash
-curl -fLO http://agent.clearplate.store/metric-agent
+curl -fLO http://agent.monittoring.co.kr/metric-agent
 chmod +x metric-agent
 ```
+
 
 2. 환경 변수 설정 및 실행
 ```bash
