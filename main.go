@@ -92,6 +92,7 @@ func main() {
 	netRxGauge, _ := meter.Int64Gauge("system.network.rx_bytes")
 	netTxGauge, _ := meter.Int64Gauge("system.network.tx_bytes")
 
+	ramTotalGauge, _ := meter.Int64Gauge("system.memory.total_bytes")
 	cCpuGauge, _ := meter.Int64Gauge("container.cpu.usage_ns")
 	cMemGauge, _ := meter.Int64Gauge("container.memory.usage_bytes")
 	cNetRxGauge, _ := meter.Int64Gauge("container.network.rx_bytes")
@@ -100,9 +101,10 @@ func main() {
 	ticker := time.NewTicker(interval)
 	for range ticker.C {
 		cpuUsage, _, _ := collect.CPUUsage(500 * time.Millisecond)
-		_, _, ramPct, _ := collect.MemUsage()
+		totalRam, _, ramPct, _ := collect.MemUsage()
 		cpuGauge.Record(ctx, cpuUsage)
 		ramGauge.Record(ctx, ramPct)
+		ramTotalGauge.Record(ctx, int64(totalRam))
 
 		disks, _ := collect.DiskUsage()
 		for _, d := range disks {
@@ -113,14 +115,16 @@ func main() {
 		}
 
 		nets, _ := collect.NetBytes()
+		var totalRx, totalTx uint64
 		for _, n := range nets {
-			if n.Iface == "eth0" || n.Iface == "ens5" || n.Iface == "enp1s0" {
-				attrs := metric.WithAttributes(attribute.String("interface", n.Iface))
-				netRxGauge.Record(ctx, int64(n.RxBytes), attrs)
-				netTxGauge.Record(ctx, int64(n.TxBytes), attrs)
-				break
+			if n.Iface == "lo" {
+				continue
 			}
+			totalRx += n.RxBytes
+			totalTx += n.TxBytes
 		}
+		netRxGauge.Record(ctx, int64(totalRx))
+		netTxGauge.Record(ctx, int64(totalTx))
 
 		containers, err := collect.ContainerUsage()
 		if err == nil {
