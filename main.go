@@ -41,7 +41,8 @@ func main() {
 	collectorURL := getEnv("COLLECTOR_URL", "localhost:4318")
 	
 	hostname, _ := os.Hostname()
-	fullServerIdentity := monitoringID + "-" + hostname
+	serverName := getEnv("SERVER_NAME", hostname)
+	fullServerIdentity := monitoringID + "-" + serverName
 
 	log.Printf("Agent started for [%s]. Data sending to [%s]", fullServerIdentity, collectorURL)
 
@@ -64,7 +65,7 @@ func main() {
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String("metric-agent"),
 			attribute.String("company.id", monitoringID),
-			attribute.String("host.name", hostname),
+			attribute.String("host.name", serverName),
 		),
 	)
 
