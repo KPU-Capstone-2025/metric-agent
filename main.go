@@ -39,25 +39,28 @@ func main() {
 
 	monitoringID := getEnv("MONITORING_ID", "default-client")
 	collectorURL := getEnv("COLLECTOR_URL", "localhost:4318")
-	
+
+	collectorEndpoint := collectorURL
+	if !strings.Contains(collectorURL, "://") {
+		collectorEndpoint = "http://" + collectorURL
+	}
+
 	hostname, _ := os.Hostname()
 	serverName := getEnv("SERVER_NAME", hostname)
 	fullServerIdentity := monitoringID + "-" + serverName
 
-	log.Printf("Agent started for [%s]. Data sending to [%s]", fullServerIdentity, collectorURL)
+	log.Printf("Agent started for [%s]. Data sending to [%s]", fullServerIdentity, collectorEndpoint)
 
 	headers := map[string]string{
 		"X-Server-Group": monitoringID,
 	}
 
 	metricExporter, _ := otlpmetrichttp.New(ctx,
-		otlpmetrichttp.WithEndpoint(collectorURL),
-		otlpmetrichttp.WithInsecure(),
+		otlpmetrichttp.WithEndpointURL(collectorEndpoint),
 		otlpmetrichttp.WithHeaders(headers),
 	)
 	logExporter, _ := otlploghttp.New(ctx,
-		otlploghttp.WithEndpoint(collectorURL),
-		otlploghttp.WithInsecure(),
+		otlploghttp.WithEndpointURL(collectorEndpoint),
 		otlploghttp.WithHeaders(headers),
 	)
 
