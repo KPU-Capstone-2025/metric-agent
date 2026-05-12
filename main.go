@@ -88,9 +88,15 @@ func main() {
 	meter := otel.Meter("metric-agent")
 	cpuGauge, _ := meter.Float64Gauge("system.cpu.usage")
 	ramGauge, _ := meter.Float64Gauge("system.memory.usage")
+	ramTotalGauge, _ := meter.Int64Gauge("system.memory.total_bytes")
 	diskGauge, _ := meter.Float64Gauge("system.disk.usage")
 	netRxGauge, _ := meter.Int64Gauge("system.network.rx_bytes")
 	netTxGauge, _ := meter.Int64Gauge("system.network.tx_bytes")
+	diskReadGauge, _ := meter.Int64Gauge("system.disk.read_bytes")
+	diskWriteGauge, _ := meter.Int64Gauge("system.disk.write_bytes")
+	loggedInUsersGauge, _ := meter.Int64Gauge("system.logged_in_users")
+	userCPUGauge, _ := meter.Float64Gauge("user.cpu.usage")
+	userMemGauge, _ := meter.Int64Gauge("user.memory.bytes")
 
 	cCpuGauge, _ := meter.Int64Gauge("container.cpu.usage_ns")
 	cMemGauge, _ := meter.Int64Gauge("container.memory.usage_bytes")
@@ -100,9 +106,10 @@ func main() {
 	ticker := time.NewTicker(interval)
 	for range ticker.C {
 		cpuUsage, _, _ := collect.CPUUsage(500 * time.Millisecond)
-		_, _, ramPct, _ := collect.MemUsage()
+		totalRam, _, ramPct, _ := collect.MemUsage()
 		cpuGauge.Record(ctx, cpuUsage)
 		ramGauge.Record(ctx, ramPct)
+		ramTotalGauge.Record(ctx, int64(totalRam))
 
 		disks, _ := collect.DiskUsage()
 		for _, d := range disks {
@@ -119,6 +126,24 @@ func main() {
 				netRxGauge.Record(ctx, int64(n.RxBytes), attrs)
 				netTxGauge.Record(ctx, int64(n.TxBytes), attrs)
 				break
+			}
+		}
+
+		// Disk I/O (cumulative — use rate() in Prometheus for bytes/s)
+		if diskIO, err := collect.DiskIO(); err == nil {
+			diskReadGauge.Record(ctx, int64(diskIO.ReadBytes))
+			diskWriteGauge.Record(ctx, int64(diskIO.WriteBytes))
+		}
+
+		// Logged-in user count
+		loggedInUsersGauge.Record(ctx, int64(collect.LoggedInUsers()))
+
+		// Per-user CPU% and memory (200ms sample window)
+		if users, err := collect.UserUsage(200 * time.Millisecond); err == nil {
+			for _, u := range users {
+				attrs := metric.WithAttributes(attribute.String("username", u.Username))
+				userCPUGauge.Record(ctx, u.CPUPct, attrs)
+				userMemGauge.Record(ctx, int64(u.MemBytes), attrs)
 			}
 		}
 
