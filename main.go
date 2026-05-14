@@ -83,6 +83,7 @@ func main() {
 	global.SetLoggerProvider(logProvider)
 
 	go watchHostLogs(ctx)
+	go watchAuthLogs(ctx)
 	go watchContainerLogs(ctx)
 
 	meter := otel.Meter("metric-agent")
@@ -114,7 +115,8 @@ func main() {
 
 		nets, _ := collect.NetBytes()
 		for _, n := range nets {
-			if n.Iface == "eth0" || n.Iface == "ens5" || n.Iface == "enp1s0" {
+			// Explicitly check for school server interface (eno1np0) and common defaults
+			if n.Iface == "eth0" || n.Iface == "ens5" || n.Iface == "enp1s0" || n.Iface == "eno1np0" {
 				attrs := metric.WithAttributes(attribute.String("interface", n.Iface))
 				netRxGauge.Record(ctx, int64(n.RxBytes), attrs)
 				netTxGauge.Record(ctx, int64(n.TxBytes), attrs)
@@ -158,6 +160,32 @@ func watchHostLogs(ctx context.Context) {
 		r.SetBody(otellog.StringValue(line.Text))
 		r.SetSeverityText("INFO")
 		r.SetSeverity(otellog.SeverityInfo)
+		logger.Emit(ctx, r)
+	}
+}
+
+func watchAuthLogs(ctx context.Context) {
+	logger := global.GetLoggerProvider().Logger("auth-logger")
+	logPath := "/var/log/auth.log"
+
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+		return
+	}
+
+	t, err := tail.TailFile(logPath, tail.Config{Follow: true, ReOpen: true})
+	if err != nil {
+		return
+	}
+
+	for line := range t.Lines {
+		now := time.Now()
+		var r otellog.Record
+		r.SetTimestamp(now)
+		r.SetObservedTimestamp(now)
+		r.SetBody(otellog.StringValue(line.Text))
+		r.SetSeverityText("INFO")
+		r.SetSeverity(otellog.SeverityInfo)
+		r.AddAttributes(otellog.String("log.file", "auth.log"))
 		logger.Emit(ctx, r)
 	}
 }
