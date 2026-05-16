@@ -106,7 +106,7 @@ func main() {
 
 	ticker := time.NewTicker(interval)
 	for range ticker.C {
-		cpuUsage, _, _ := collect.CPUUsage(500 * time.Millisecond)
+		cpuUsage, _, _ := collect.CPUUsage(2 * time.Second)
 		totalRam, _, ramPct, _ := collect.MemUsage()
 		cpuGauge.Record(ctx, cpuUsage)
 		ramGauge.Record(ctx, ramPct)
