@@ -63,9 +63,7 @@ chmod +x metric-agent
 
 2. 환경 변수 설정 및 실행
 ```bash
-export MONITORING_ID="귀사의_고유_코드"
-export COLLECTOR_URL="수집_서버_주소:4318"
-sudo -E nohup ./metric-agent > metric.log 2>&1 &
+sudo env MONITORING_ID="귀사의_고유_코드" COLLECTOR_URL="수집_서버_주소" nohup ./metric-agent > metric.log 2>&1 &
 ```
 
 ## 준비 사항
